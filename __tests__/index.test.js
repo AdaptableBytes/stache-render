@@ -67,3 +67,21 @@ test('returns content from template', async () => {
   const content = await render(template, data);
   expect(content).toBe('Hello World');
 });
+
+test('returns content from template with partial src file', async () => {
+  const src = path.join('__tests__', 'artifacts', 'partial.tmpl');
+  const template = {
+    content: 'Hello {{> info}}',
+    partials: [
+      {
+        name: 'info',
+        src
+      }
+    ]
+  };
+  const data = {
+    name: 'World'
+  };
+  const content = await render(template, data);
+  expect(content).toBe('Hello This is a partial, World');
+});

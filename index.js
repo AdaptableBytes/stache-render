@@ -50,17 +50,24 @@ async function getContent(filepath) {
   });
 }
 
-module.exports = async function stacheRender(template, data) {
-  await validate(template, data);
-  const promises = [];
-
+async function getTemplateContent(template) {
+  let promise = null;
   if (hasContent(template) === true) {
-    promises.push(template.content);
+    promise = template.content;
   } else {
-    promises.push(getContent(template.src));
+    promise = getContent(template.src);
   }
+  let main = null;
+  try {
+    main = await Promise.resolve(promise);
+  } catch(e) {
+    throw Error(`Failed to get template content ${e.message}`);
+  }
+  return main;
+}
 
-  const partials = {};
+async function processPartials(template) {
+  const promises = [];  
   const partialsIdx = [];
 
   if (template.partials) {
@@ -80,22 +87,35 @@ module.exports = async function stacheRender(template, data) {
       }      
     }
   }
+  return {
+    promises,
+    idx: partialsIdx
+  };
+}
+
+module.exports = async function stacheRender(template, data) {
+  await validate(template, data);
   
+  const main = await getTemplateContent(template);
+  const partialData = await processPartials(template);
+
   let results = null;
-  let main = EMPTY_STR;
   try {
-    results = await Promise.all(promises);    
+    if (partialData.promises.length > 0) {
+      results = await Promise.all(partialData.promises);
+    }    
   } catch(e) {
     throw Error(`There was an error retrieving one or more files. ${e.message}`);
   }
 
+  const partials = {};
   if (results && Array.isArray(results)) {
-    main = results[0];
-    for (let x = 0; x < partialsIdx.length; x += 1) {
-      const name = partialsIdx[x];
-      partials[name] = results[x+1];
+    for (let x = 0; x < partialData.idx.length; x += 1) {
+      const name = partialData.idx[x];
+      partials[name] = results[x];
     }
   }
+
   let content = EMPTY_STR;
   try {
     if (main !== EMPTY_STR) {
