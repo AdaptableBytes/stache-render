@@ -51,7 +51,7 @@ An array of `partials` may optionally be included, if you're into that sort of t
 ```javascript
 {
   src: "/path/to/template",
-  content: "Hello {{name}}, this is a template. {{> header}}"
+  content: "Hello {{name}}, this is a template. {{> header}}",
   partials: [
     {
       name: "header",
